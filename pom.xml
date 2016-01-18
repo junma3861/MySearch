@@ -57,6 +57,12 @@
   		<artifactId>mongodb-driver</artifactId>
   		<version>3.0.4</version>
   	</dependency>
+  	<dependency>
+	<groupId>nz.ac.waikato.cms.weka</groupId>
+	<artifactId>weka-stable</artifactId>
+	<version>3.6.6</version>
+</dependency>
+  	
   </dependencies>
   
 </project>
