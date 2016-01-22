@@ -22,8 +22,8 @@ public class PageRank {
 	
 	private static final Logger logger = LoggerFactory.getLogger(PageRank.class);
 	
-	HashMap<String, List<String>> incomingUrls = new HashMap<>();
-	HashMap<String, Integer> outgoingDegs = new HashMap<>();
+	HashMap<Integer, List<Integer>> incomingUrls = new HashMap<>();
+	HashMap<Integer, Integer> outgoingDegs = new HashMap<>();
 	
 	private double[][] matrixA;
 	private double[] vectorPr;
@@ -57,8 +57,9 @@ public class PageRank {
 	
 	
 	/**
-	 * For each docId : outgoing LinkedDocIds pair, reverse it as docId : incoming LinkedDocIds, save in a HashMap
-	 * Also save the outgoing degree in a HashMap.
+	 * For each docId : outgoing LinkedDocIds pair, reverse it as docId : incoming LinkedDocIds, 
+	 * save in a HashMap: incomingUrls
+	 * Also save the outgoing degree in a HashMap: outgoingDegs
 	 */
 	private void loadMatrixAFromMongoDB() {
 		
@@ -77,30 +78,29 @@ public class PageRank {
 				@Override
 				public void apply(final Document document) {
 					
-					String docId = document.getInteger("doc_id").toString();
-					logger.info(docId);
+					int docId = document.getInteger("doc_id");
+					logger.info(Integer.toString(docId));
 					
 					@SuppressWarnings("unchecked")
 					ArrayList<Document> outgoingDocIdList = (ArrayList<Document>) document.get("link_docId");
 					
+					if (!outgoingDegs.containsKey(docId)) {
+						outgoingDegs.put(docId, outgoingDocIdList.size());
+					} else {
+						logger.warn("Repeated docId {} found in {}", docId, URL_DB_NAME);
+						outgoingDegs.put(docId, outgoingDocIdList.size());
+					}
 					
+
 					for (Document item : outgoingDocIdList) {
 						
-						String word = item.keySet().iterator().next();
+						int outgoingDocId = item.getInteger("link_docId");
 						
-						if (!outgoingDegs.containsKey(word)) {
-							outgoingDegs.put(word, 0);
+						if (!incomingUrls.containsKey(outgoingDocId)) {
+							incomingUrls.put(outgoingDocId, new ArrayList<Integer>(Arrays.asList(docId)));
 						} else {
-							logger.warn("Repeated docId {} found in {}", word, URL_DB_NAME);
+							incomingUrls.get(outgoingDocId).add(docId);
 						}
-						
-//						if (!isWordInRevIndexDB(word)) {
-//							revIndexDB.getCollection("Word_DocId").insertOne(new Document().append("word", word)
-//									.append("word_count_in_docId", Arrays.asList()));
-//						}
-//						
-//						revIndexDB.getCollection("Word_DocId").updateOne(new Document("word", word), 
-//								new Document("$push", new Document(docId, item.getInteger(word))));
 						
 					}
 					
