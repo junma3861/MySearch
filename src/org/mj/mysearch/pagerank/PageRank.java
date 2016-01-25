@@ -22,21 +22,30 @@ public class PageRank {
 	
 	private static final Logger logger = LoggerFactory.getLogger(PageRank.class);
 	
-	HashMap<Integer, List<Integer>> incomingUrls = new HashMap<>();
-	HashMap<Integer, Integer> outgoingDegs = new HashMap<>();
+	private HashMap<Integer, List<Integer>> incomingUrls;
+	private HashMap<Integer, Integer> outgoingDegs;
+	private HashMap<Integer, Integer> pageIndices;
 	
 	private double[][] matrixA;
+	private double[][] matrixDeg;
 	private double[] vectorPr;
-	private Matrix wekaA, weakPr;
+	private Matrix wekaA, wekaPr, wekaDeg;
 	
 	private static final String URL_DB_NAME = "OutgoingUrlDB";
 	
 	private MongoClient mongoClient;
 	private MongoDatabase outgoingUrlDB;
+	
+	private int numOfPages;
+	
 	/**
 	 * constructor class
 	 */
 	public PageRank() {
+		
+		incomingUrls = new HashMap<>();
+		outgoingDegs = new HashMap<>();
+		pageIndices = new HashMap<>();
 		
 	}
 	
@@ -51,9 +60,41 @@ public class PageRank {
 	 */
 	public void initialize() {
 		
-		
 		loadMatrixAFromMongoDB();
+		constructMatrices();
 	}
+	
+	
+	/**
+	 * Use the constructed HashMap: incomingUrls, outgoingDegs
+	 * construct the weka Matrices: wekaA, wekaPc
+	 * 
+	 * Steps:
+	 * 1. construct page indices: HashMap docId=>int, position in the matrix row/col
+	 * 2. construct matrixA, vectorPr
+	 * 3. construct wekaA, wekaP from matrixA and vectorPr
+	 */
+	private void constructMatrices() {
+		
+		numOfPages = outgoingDegs.keySet().size();
+		
+		int currentIndex = 0;
+		for (int docId : outgoingDegs.keySet()) {
+			if (!pageIndices.containsKey(docId)) {
+				pageIndices.put(docId, currentIndex++);
+			}
+		}
+		
+		assert (currentIndex + 1) == numOfPages;
+		
+		matrixA = new double[numOfPages][numOfPages];
+		vectorPr = new double[numOfPages];
+		
+		
+		
+		
+	}
+	
 	
 	
 	/**
@@ -114,6 +155,8 @@ public class PageRank {
 		} finally {
 			shutDownDB();
 		}
+		
+		
 	}
 	
 	
