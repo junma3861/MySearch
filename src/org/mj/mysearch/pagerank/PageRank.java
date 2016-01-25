@@ -30,6 +30,7 @@ public class PageRank {
 	private double[][] matrixDeg;
 	private double[] vectorPr;
 	private Matrix wekaA, wekaPr, wekaDeg;
+	private double defaulScoreValue;
 	
 	private static final String URL_DB_NAME = "OutgoingUrlDB";
 	
@@ -37,16 +38,22 @@ public class PageRank {
 	private MongoDatabase outgoingUrlDB;
 	
 	private int numOfPages;
+	public int maxIterNum;
 	
 	/**
 	 * constructor class
+	 * @param defaultScoreValue 
 	 */
-	public PageRank() {
+	public PageRank(int maxIterNum, double defaultScoreValue) {
+		
+		
 		
 		incomingUrls = new HashMap<>();
 		outgoingDegs = new HashMap<>();
 		pageIndices = new HashMap<>();
 		
+		this.defaulScoreValue = defaultScoreValue;
+		this.maxIterNum = maxIterNum;
 	}
 	
 	
@@ -88,9 +95,29 @@ public class PageRank {
 		assert (currentIndex + 1) == numOfPages;
 		
 		matrixA = new double[numOfPages][numOfPages];
+		matrixDeg = new double[numOfPages][numOfPages];
 		vectorPr = new double[numOfPages];
+		Arrays.fill(vectorPr, new Double(defaulScoreValue));
 		
+		for (int docId : incomingUrls.keySet()) {
+			for (int incomingUrlDocId : incomingUrls.get(docId)) {
+				if (outgoingDegs.keySet().contains(incomingUrlDocId)) {
+					matrixA[pageIndices.get(docId)][pageIndices.get(incomingUrlDocId)] = 1.;
+				}
+			}
+			matrixDeg[pageIndices.get(docId)][pageIndices.get(docId)] = 1. / outgoingDegs.get(docId);
+			
+		}
 		
+		wekaA = new Matrix(matrixA);
+		wekaDeg = new Matrix(matrixDeg);
+		wekaA = wekaA.times(wekaDeg);
+		wekaPr = new Matrix(vectorPr, vectorPr.length);
+		
+		matrixA = null;
+		matrixDeg = null;
+		wekaDeg = null;
+		vectorPr = null;
 		
 		
 	}
@@ -183,6 +210,11 @@ public class PageRank {
 	 */
 	public void run() {
 		
+		int iter = 0;
+		
+		while (!isConverged() && iter < maxIterNum) {
+			
+		}
 	}
 	
 	/**
