@@ -29,22 +29,23 @@ public class PageRank {
 	private double[][] matrixA;
 	private double[][] matrixDeg;
 	private double[] vectorPr;
-	private Matrix wekaA, wekaPr, wekaDeg;
+	private Matrix wekaA, wekaPr, wekaPreviousPr, wekaDeg;
 	private double defaulScoreValue;
 	
-	private static final String URL_DB_NAME = "OutgoingUrlDB";
+	private static final String URL_DB_NAME = "OutgoingUrlDB", PRSCORE_DB_NAME = "PrScoreDB";
 	
 	private MongoClient mongoClient;
-	private MongoDatabase outgoingUrlDB;
+	private MongoDatabase outgoingUrlDB, prScoreDB;
 	
 	private int numOfPages;
 	public int maxIterNum;
+	public double convergeThreshold;
 	
 	/**
 	 * constructor class
 	 * @param defaultScoreValue 
 	 */
-	public PageRank(int maxIterNum, double defaultScoreValue) {
+	public PageRank(int maxIterNum, double convergeThreshold, double defaultScoreValue) {
 		
 		
 		
@@ -53,6 +54,7 @@ public class PageRank {
 		pageIndices = new HashMap<>();
 		
 		this.defaulScoreValue = defaultScoreValue;
+		this.convergeThreshold = convergeThreshold;
 		this.maxIterNum = maxIterNum;
 	}
 	
@@ -113,6 +115,7 @@ public class PageRank {
 		wekaDeg = new Matrix(matrixDeg);
 		wekaA = wekaA.times(wekaDeg);
 		wekaPr = new Matrix(vectorPr, vectorPr.length);
+		wekaPreviousPr = null;
 		
 		matrixA = null;
 		matrixDeg = null;
@@ -206,16 +209,19 @@ public class PageRank {
 	
 	
 	/**
-	 * core finction running PageRank
+	 * core function running PageRank
 	 */
-	public void run() {
+	protected void iterRun() {
 		
 		int iter = 0;
 		
 		while (!isConverged() && iter < maxIterNum) {
-			
+			wekaPreviousPr = wekaPr;
+			wekaPr = wekaA.times(wekaPr);
 		}
 	}
+	
+
 	
 	/**
 	 * Test if the convergence condition is met.
@@ -223,7 +229,46 @@ public class PageRank {
 	 */
 	protected boolean isConverged() {
 		
-		return false;
+		return wekaPreviousPr.minus(wekaPr).norm2() <= convergeThreshold;	
+	}
+	
+	
+	/**
+	 * Save results to MongoDB
+	 */
+	protected void savePr() {
+		
+		logger.info("Opening PageRank score database...");
+		
+		try {
+			
+			mongoClient = new MongoClient();
+			prScoreDB = mongoClient.getDatabase(PRSCORE_DB_NAME);
+			logger.info("Successfully opened database {}.", PRSCORE_DB_NAME);
+			
+			for (int docId : pageIndices.keySet()) {
+				prScoreDB.getCollection(PRSCORE_DB_NAME).insertOne(new Document().append("doc_id", docId)
+						.append("pr_score", wekaPr.get(pageIndices.get(docId), 0) ));
+			}
+			
+			
+		} catch (Exception dbe) {
+			logger.error("Error while openining index or outgoingUrlDB database.");
+			dbe.printStackTrace();			
+		} finally {
+			shutDownDB();
+		}
+		
+	}
+	
+	
+	/**
+	 * call this function to run
+	 */
+	public void run() {
+		initialize();
+		iterRun();
+		savePr();
 	}
 
 }
