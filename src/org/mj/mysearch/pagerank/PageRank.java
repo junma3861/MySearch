@@ -13,7 +13,6 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoDatabase;
 
 import org.bson.Document;
-import org.mj.mysearch.webcrawler.TextCrawlerMongoDB;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,9 +67,10 @@ public class PageRank {
 	 * 3. matrixA = matrixAdj x matrixDeg
 	 */
 	public void initialize() {
-		
+		logger.info("Initializing Page Rank settings ...");
 		loadMatrixAFromMongoDB();
 		constructMatrices();
+		logger.info("Initialization complete,");
 	}
 	
 	
@@ -134,7 +134,9 @@ public class PageRank {
 	 */
 	private void loadMatrixAFromMongoDB() {
 		
-		logger.info("Opening database {}");
+		logger.info("Loading Matrix A from MongoDB ...");
+		logger.info("Reading from database {}", URL_DB_NAME);
+		
 		try {
 			mongoClient = new MongoClient();
 			outgoingUrlDB = mongoClient.getDatabase(URL_DB_NAME);
@@ -194,6 +196,8 @@ public class PageRank {
 	 *  Shut down database.
 	 */
 	private void shutDownDB() {
+		logger.info("Shutting down MongoDB.");
+		
 		try {
 			
 			if (mongoClient != null) {
@@ -204,6 +208,7 @@ public class PageRank {
 			logger.error("Error while shutting down MongoDB Client.");
 			e.printStackTrace();
 		}
+		logger.info("MongoDB is shut down.");
 	}
 	
 	
@@ -214,22 +219,28 @@ public class PageRank {
 	protected void iterRun() {
 		
 		int iter = 0;
+		double dist;
 		
-		while (!isConverged() && iter < maxIterNum) {
+		logger.info("Start page ranking iterations ...");
+		
+		while ((dist = getConvergedDistance()) > convergeThreshold && iter++ < maxIterNum) {
+			logger.info("Iter {}: distance: {}", iter, dist);
 			wekaPreviousPr = wekaPr;
 			wekaPr = wekaA.times(wekaPr);
 		}
+		
+		logger.info("Iteration completed.");
 	}
 	
 
 	
 	/**
-	 * Test if the convergence condition is met.
+	 * Return the converged distance.
 	 * @return
 	 */
-	protected boolean isConverged() {
+	protected double getConvergedDistance() {
 		
-		return wekaPreviousPr.minus(wekaPr).norm2() <= convergeThreshold;	
+		return wekaPreviousPr.minus(wekaPr).norm2();	
 	}
 	
 	
@@ -238,7 +249,7 @@ public class PageRank {
 	 */
 	protected void savePr() {
 		
-		logger.info("Opening PageRank score database...");
+		logger.info("Saving PageRank score to MongoDB {} ...", PRSCORE_DB_NAME);
 		
 		try {
 			
@@ -258,6 +269,8 @@ public class PageRank {
 		} finally {
 			shutDownDB();
 		}
+		
+		logger.info("Saving PageRank score completed.");
 		
 	}
 	
