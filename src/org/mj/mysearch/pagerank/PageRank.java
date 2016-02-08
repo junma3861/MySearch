@@ -103,8 +103,14 @@ public class PageRank {
 		
 		for (int docId : incomingUrls.keySet()) {
 			for (int incomingUrlDocId : incomingUrls.get(docId)) {
-				if (outgoingDegs.keySet().contains(incomingUrlDocId)) {
-					matrixA[pageIndices.get(docId)][pageIndices.get(incomingUrlDocId)] = 1.;
+				if (outgoingDegs.containsKey(incomingUrlDocId)) {
+					try {
+						matrixA[pageIndices.get(docId)][pageIndices.get(incomingUrlDocId)] = 1.;
+					} catch (Exception e) {
+						logger.info("contains docId {}:{}", docId, pageIndices.containsKey(docId));
+						logger.info("contains incomingUrlDocId {}:{}", incomingUrlDocId, pageIndices.containsKey(incomingUrlDocId));
+					}
+					
 				}
 			}
 			matrixDeg[pageIndices.get(docId)][pageIndices.get(docId)] = 1. / outgoingDegs.get(docId);
@@ -142,7 +148,6 @@ public class PageRank {
 			outgoingUrlDB = mongoClient.getDatabase(URL_DB_NAME);
 			logger.info("Successfully opened database {}.", URL_DB_NAME);
 
-			
 			FindIterable<Document> iterable = outgoingUrlDB.getCollection("DocId_LinkDocId").find();
 			iterable.noCursorTimeout(true);
 			
@@ -152,10 +157,10 @@ public class PageRank {
 				public void apply(final Document document) {
 					
 					int docId = document.getInteger("doc_id");
-					logger.info(Integer.toString(docId));
+					logger.info("docId:{}", Integer.toString(docId));
 					
 					@SuppressWarnings("unchecked")
-					ArrayList<Document> outgoingDocIdList = (ArrayList<Document>) document.get("link_docId");
+					ArrayList<Integer> outgoingDocIdList = (ArrayList<Integer>) document.get("link_docId");
 					
 					if (!outgoingDegs.containsKey(docId)) {
 						outgoingDegs.put(docId, outgoingDocIdList.size());
@@ -165,9 +170,9 @@ public class PageRank {
 					}
 					
 
-					for (Document item : outgoingDocIdList) {
+					for (int item : outgoingDocIdList) {
 						
-						int outgoingDocId = item.getInteger("link_docId");
+						int outgoingDocId = item;
 						
 						if (!incomingUrls.containsKey(outgoingDocId)) {
 							incomingUrls.put(outgoingDocId, new ArrayList<Integer>(Arrays.asList(docId)));
