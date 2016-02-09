@@ -15,12 +15,13 @@ public class PageRankController {
 	public static void main(String[] args) {
 		
 		int maxIterNum = 1000;
-		double convergeThreshold = 1.0e-5;
-		double defaultScoreValue = 0;
+		double convergeThreshold = 1.0e-7;
+		double defaultScoreValue = 0.01;
+		double parameterD = 0.85;
 		
 		logger.info("Page Rank.");
 		
-		PageRank pageRank = new PageRank(maxIterNum, convergeThreshold, defaultScoreValue);
+		PageRank pageRank = new PageRank(maxIterNum, convergeThreshold, defaultScoreValue, parameterD);
 		pageRank.run();
 		
 		logger.info("All complete.");

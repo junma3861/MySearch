@@ -27,8 +27,8 @@ public class PageRank {
 	
 	private double[][] matrixA;
 	private double[][] matrixDeg;
-	private double[] vectorPr;
-	private Matrix wekaA, wekaPr, wekaPreviousPr, wekaDeg;
+	private double[] vectorPr, vectorD;
+	private Matrix wekaA, wekaPr, wekaPreviousPr, wekaDeg, wekaD;
 	private double defaulScoreValue;
 	
 	private static final String URL_DB_NAME = "OutgoingUrlDB", PRSCORE_DB_NAME = "PrScoreDB";
@@ -38,13 +38,13 @@ public class PageRank {
 	
 	private int numOfPages;
 	public int maxIterNum;
-	public double convergeThreshold;
+	public double convergeThreshold, parameterD;
 	
 	/**
 	 * constructor class
 	 * @param defaultScoreValue 
 	 */
-	public PageRank(int maxIterNum, double convergeThreshold, double defaultScoreValue) {
+	public PageRank(int maxIterNum, double convergeThreshold, double defaultScoreValue, double parameterD) {
 		
 		
 		
@@ -55,6 +55,8 @@ public class PageRank {
 		this.defaulScoreValue = defaultScoreValue;
 		this.convergeThreshold = convergeThreshold;
 		this.maxIterNum = maxIterNum;
+		this.parameterD = parameterD;
+		
 	}
 	
 	
@@ -85,6 +87,9 @@ public class PageRank {
 	 */
 	private void constructMatrices() {
 		
+		
+		logger.info("Constucting Matrics ...");
+		
 		numOfPages = outgoingDegs.keySet().size();
 		
 		int currentIndex = 0;
@@ -99,11 +104,13 @@ public class PageRank {
 		matrixA = new double[numOfPages][numOfPages];
 		matrixDeg = new double[numOfPages][numOfPages];
 		vectorPr = new double[numOfPages];
+		vectorD = new double[numOfPages];
 		Arrays.fill(vectorPr, new Double(defaulScoreValue));
 		
-		for (int docId : incomingUrls.keySet()) {
+		for (int docId : outgoingDegs.keySet()) {
+			if (!incomingUrls.containsKey(docId)) continue;
 			for (int incomingUrlDocId : incomingUrls.get(docId)) {
-				if (outgoingDegs.containsKey(incomingUrlDocId)) {
+				if (pageIndices.containsKey(incomingUrlDocId)) {
 					try {
 						matrixA[pageIndices.get(docId)][pageIndices.get(incomingUrlDocId)] = 1.;
 					} catch (Exception e) {
@@ -117,10 +124,15 @@ public class PageRank {
 			
 		}
 		
+		for (int i = 0; i < numOfPages; i++) {
+			vectorD[i] = parameterD;
+		}
+		
 		wekaA = new Matrix(matrixA);
 		wekaDeg = new Matrix(matrixDeg);
 		wekaA = wekaA.times(wekaDeg);
 		wekaPr = new Matrix(vectorPr, vectorPr.length);
+		wekaD = new Matrix(vectorD, vectorD.length);
 		wekaPreviousPr = null;
 		
 		matrixA = null;
@@ -229,9 +241,9 @@ public class PageRank {
 		logger.info("Start page ranking iterations ...");
 		
 		while ((dist = getConvergedDistance()) > convergeThreshold && iter++ < maxIterNum) {
-			logger.info("Iter {}: distance: {}", iter, dist);
-			wekaPreviousPr = wekaPr;
-			wekaPr = wekaA.times(wekaPr);
+			logger.info("Iter :{} distance: {}", iter, dist);
+			wekaPreviousPr = wekaPr.copy();
+			wekaPr = wekaA.times(wekaPr).times(parameterD).plus(wekaD);
 		}
 		
 		logger.info("Iteration completed.");
@@ -245,7 +257,7 @@ public class PageRank {
 	 */
 	protected double getConvergedDistance() {
 		
-		return wekaPreviousPr.minus(wekaPr).norm2();	
+		return wekaPreviousPr == null ? convergeThreshold*10 : wekaPreviousPr.minus(wekaPr).norm2();	
 	}
 	
 	
