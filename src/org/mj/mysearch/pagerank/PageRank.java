@@ -129,8 +129,12 @@ public class PageRank {
 		}
 		
 		wekaA = new Matrix(matrixA);
+		logger.info("wekaA norm: {}, wekaA dim: {},{}, 1st element:{}", wekaA.normF(), wekaA.getRowDimension(), wekaA.getColumnDimension(), wekaA.get(0, 0));
 		wekaDeg = new Matrix(matrixDeg);
+		logger.info("wekaDeg norm: {}, wekaDeg dim: {}, {}, 1st element:{}", wekaDeg.normF(), wekaDeg.getRowDimension(), wekaDeg.getColumnDimension(), wekaDeg.get(0, 0));
 		wekaA = wekaA.times(wekaDeg);
+		logger.info("wekaA norm: {}, wekaA dim: {},{}, 1st element:{}", wekaA.normF(), wekaA.getRowDimension(), wekaA.getColumnDimension(), wekaA.get(0, 0));
+		logger.info("wekaA norminf: {}, wekaA norm1: {}", wekaA.normInf(), wekaA.norm1());
 		wekaPr = new Matrix(vectorPr, vectorPr.length);
 		wekaD = new Matrix(vectorD, vectorD.length);
 		wekaPreviousPr = null;
@@ -169,16 +173,16 @@ public class PageRank {
 				public void apply(final Document document) {
 					
 					int docId = document.getInteger("doc_id");
-					logger.info("docId:{}", Integer.toString(docId));
 					
 					@SuppressWarnings("unchecked")
 					ArrayList<Integer> outgoingDocIdList = (ArrayList<Integer>) document.get("link_docId");
+					logger.info("docId:{}, size:{}", Integer.toString(docId), outgoingDocIdList.size());
 					
 					if (!outgoingDegs.containsKey(docId)) {
-						outgoingDegs.put(docId, outgoingDocIdList.size());
+						outgoingDegs.put(docId, Math.max(1, outgoingDocIdList.size()));
 					} else {
 						logger.warn("Repeated docId {} found in {}", docId, URL_DB_NAME);
-						outgoingDegs.put(docId, outgoingDocIdList.size());
+						outgoingDegs.put(docId, Math.max(1, outgoingDocIdList.size()));
 					}
 					
 
@@ -236,16 +240,26 @@ public class PageRank {
 	protected void iterRun() {
 		
 		int iter = 0;
-		double dist;
+		double dist = 10 * convergeThreshold;
 		
 		logger.info("Start page ranking iterations ...");
 		
-		while ((dist = getConvergedDistance()) > convergeThreshold && iter++ < maxIterNum) {
-			logger.info("Iter :{} distance: {}", iter, dist);
+		wekaD = wekaD.times((1 - parameterD));
+		while (dist > convergeThreshold && iter++ < maxIterNum) {
+			
+			//logger.info("element in welaPr: {}");
 			wekaPreviousPr = wekaPr.copy();
-			wekaPr = wekaA.times(wekaPr).times(parameterD).plus(wekaD);
+			logger.info("wekaA norm: {}", wekaA.normF());
+			wekaPr = wekaA.times(wekaPr);
+			logger.info("Norm in the middle: {}", wekaPr.normF());
+			//wekaPr = wekaPr.times(parameterD).plus(wekaD);
+			logger.info("wekaPreviousPr Norm: {}", wekaPreviousPr.normF());
+			logger.info("WekaPr Norm: {}", wekaPr.normF());
+			dist = getConvergedDistance();
+			logger.info("Iter :{} distance: {}", iter, dist);
 		}
 		
+		logger.info("distance: {}", dist);
 		logger.info("Iteration completed.");
 	}
 	
@@ -256,8 +270,7 @@ public class PageRank {
 	 * @return
 	 */
 	protected double getConvergedDistance() {
-		
-		return wekaPreviousPr == null ? convergeThreshold*10 : wekaPreviousPr.minus(wekaPr).norm2();	
+		return wekaPreviousPr.minus(wekaPr).normF();	
 	}
 	
 	
@@ -297,8 +310,8 @@ public class PageRank {
 	 */
 	public void run() {
 		initialize();
-		iterRun();
-		savePr();
+		//iterRun();
+		//savePr();
 	}
 
 }
