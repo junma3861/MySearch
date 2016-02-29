@@ -14,7 +14,7 @@ public class PageRankController {
 	
 	public static void main(String[] args) {
 		
-		int maxIterNum = 1000;
+		int maxIterNum = 100;
 		double convergeThreshold = 1.0e-7;
 		double defaultScoreValue = 0.01;
 		double parameterD = 0.85;

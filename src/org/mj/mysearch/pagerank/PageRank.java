@@ -120,9 +120,10 @@ public class PageRank {
 					
 				}
 			}
-			matrixDeg[pageIndices.get(docId)][pageIndices.get(docId)] = 1. / outgoingDegs.get(docId);
+			matrixDeg[pageIndices.get(docId)][pageIndices.get(docId)] = outgoingDegs.get(docId) == 0 ? 0 : 1. / outgoingDegs.get(docId);
 			
 		}
+		
 		
 		for (int i = 0; i < numOfPages; i++) {
 			vectorD[i] = parameterD;
@@ -135,6 +136,35 @@ public class PageRank {
 		wekaA = wekaA.times(wekaDeg);
 		logger.info("wekaA norm: {}, wekaA dim: {},{}, 1st element:{}", wekaA.normF(), wekaA.getRowDimension(), wekaA.getColumnDimension(), wekaA.get(0, 0));
 		logger.info("wekaA norminf: {}, wekaA norm1: {}", wekaA.normInf(), wekaA.norm1());
+		
+
+		
+		// Normalization
+		for (int i = 0; i < numOfPages; i++) {
+			int sum = 0;
+			for (int j = 0; j < numOfPages; j++) {
+				sum += wekaA.get(i, j);
+			}
+			for (int j = 0; j < numOfPages; j++) {
+				if (sum == 0) {
+					wekaA.set(i, j, 0);
+				} else {
+					wekaA.set(i, j, (double) wekaA.get(i, j) / sum);
+				}
+				
+			}
+		}
+		
+		
+		// value check
+//		for (int i = 0; i < numOfPages; i++) {
+//		for (int j = 0; j < numOfPages; j++) {
+//			if (wekaA.get(i, j) == 1) {
+//				logger.info("{}, {} in wekaA == 1", i, j);
+//			}
+//		}
+//	}
+		
 		wekaPr = new Matrix(vectorPr, vectorPr.length);
 		wekaD = new Matrix(vectorD, vectorD.length);
 		wekaPreviousPr = null;
@@ -310,8 +340,8 @@ public class PageRank {
 	 */
 	public void run() {
 		initialize();
-		//iterRun();
-		//savePr();
+		iterRun();
+		savePr();
 	}
 
 }
