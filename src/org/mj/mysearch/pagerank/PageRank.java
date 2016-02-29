@@ -126,7 +126,7 @@ public class PageRank {
 		
 		
 		for (int i = 0; i < numOfPages; i++) {
-			vectorD[i] = parameterD;
+			vectorD[i] = 1. / numOfPages;
 		}
 		
 		wekaA = new Matrix(matrixA);
@@ -280,7 +280,7 @@ public class PageRank {
 			//logger.info("element in welaPr: {}");
 			wekaPreviousPr = wekaPr.copy();
 			logger.info("wekaA norm: {}", wekaA.normF());
-			wekaPr = wekaA.times(wekaPr);
+			wekaPr = wekaA.times(wekaPr).times(parameterD).plus(wekaD);
 			logger.info("Norm in the middle: {}", wekaPr.normF());
 			//wekaPr = wekaPr.times(parameterD).plus(wekaD);
 			logger.info("wekaPreviousPr Norm: {}", wekaPreviousPr.normF());
